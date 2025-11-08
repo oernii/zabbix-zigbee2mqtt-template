@@ -1,0 +1,96 @@
+zabbix_export:
+  version: '7.4'
+  date: '2025-11-08T00:00:00Z'
+  groups:
+    - name: Templates/Modules
+  templates:
+    - template: Zigbee2MQTT Discovery
+      name: Zigbee2MQTT Discovery
+      groups:
+        - name: Templates/Modules
+      macros:
+        - macro: '{$MQTT.BROKER}'
+          value: 'mqtt://your-mqtt-broker:1883'
+        - macro: '{$MQTT.USER}'
+          value: 'your-mqtt-user'
+        - macro: '{$MQTT.PASSWORD}'
+          value: 'your-mqtt-password'
+      discovery_rules:
+        - name: 'Zigbee2MQTT Device Discovery'
+          key: zigbee2mqtt.discovery
+          type: MQTT_GET
+          parameters:
+            - name: broker
+              value: '{$MQTT.BROKER}'
+            - name: user
+              value: '{$MQTT.USER}'
+            - name: password
+              value: '{$MQTT.PASSWORD}'
+            - name: topic
+              value: 'zigbee2mqtt/bridge/devices'
+          lld_macro_paths:
+            - lld_macro: '{#DEVICE_ID}'
+              path: '$.[] | .friendly_name'
+          item_prototypes:
+            - name: '{#DEVICE_ID} - Battery'
+              key: 'zigbee2mqtt.battery[{#DEVICE_ID}]'
+              type: MQTT_GET
+              parameters:
+                - name: broker
+                  value: '{$MQTT.BROKER}'
+                - name: user
+                  value: '{$MQTT.USER}'
+                - name: password
+                  value: '{$MQTT.PASSWORD}'
+                - name: topic
+                  value: 'zigbee2mqtt/{#DEVICE_ID}'
+                - name: payload
+                  value: 'battery'
+              value_type: NUMERIC_UNSIGNED
+              units: '%'
+              trigger_prototypes:
+                - name: '{#DEVICE_ID} - Low Battery'
+                  expression: 'last(/Zigbee2MQTT Discovery/zigbee2mqtt.battery[{#DEVICE_ID}]) < 20'
+                  priority: WARNING
+                  description: 'Battery level is below 20%'
+
+            - name: '{#DEVICE_ID} - Temperature'
+              key: 'zigbee2mqtt.temperature[{#DEVICE_ID}]'
+              type: MQTT_GET
+              parameters:
+                - name: broker
+                  value: '{$MQTT.BROKER}'
+                - name: user
+                  value: '{$MQTT.USER}'
+                - name: password
+                  value: '{$MQTT.PASSWORD}'
+                - name: topic
+                  value: 'zigbee2mqtt/{#DEVICE_ID}'
+                - name: payload
+                  value: 'temperature'
+              value_type: FLOAT
+              units: '°C'
+              trigger_prototypes:
+                - name: '{#DEVICE_ID} - High Temperature'
+                  expression: 'last(/Zigbee2MQTT Discovery/zigbee2mqtt.temperature[{#DEVICE_ID}]) > 30'
+                  priority: WARNING
+                  description: 'Temperature is above 30°C'
+
+            # Add more item prototypes for other parameters (e.g., humidity, power) as needed
+            - name: '{#DEVICE_ID} - Humidity'
+              key: 'zigbee2mqtt.humidity[{#DEVICE_ID}]'
+              type: MQTT_GET
+              parameters:
+                - name: broker
+                  value: '{$MQTT.BROKER}'
+                - name: user
+                  value: '{$MQTT.USER}'
+                - name: password
+                  value: '{$MQTT.PASSWORD}'
+                - name: topic
+                  value: 'zigbee2mqtt/{#DEVICE_ID}'
+                - name: payload
+                  value: 'humidity'
+              value_type: FLOAT
+              units: '%'
+
